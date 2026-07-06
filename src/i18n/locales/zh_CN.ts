@@ -64,6 +64,14 @@ export const zh_CN: LanguageTranslation = {
             delete: '删除',
         },
 
+        delete_server_diagram_alert: {
+            title: 'Delete diagram from server',
+            description:
+                'This action cannot be undone. This will permanently delete the diagram from the server, and it will no longer be accessible from other devices.',
+            cancel: 'Cancel',
+            delete: 'Delete',
+        },
+
         clear_diagram_alert: {
             title: '清除关系图',
             description: '此操作无法撤销。这将永久删除关系图中的所有数据。',
@@ -350,11 +358,21 @@ export const zh_CN: LanguageTranslation = {
             },
             cancel: '取消',
             open: '打开',
+            create_new: 'New diagram',
 
             diagram_actions: {
                 open: '打开',
                 duplicate: '复制',
                 delete: '删除',
+            },
+
+            local_section: {
+                title: 'On this device',
+            },
+
+            server_section: {
+                title: 'On the server',
+                empty: 'No diagrams saved on the server yet.',
             },
         },
 

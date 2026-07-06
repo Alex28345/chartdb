@@ -109,6 +109,31 @@ export const getDiagramTTL = async (
     }
 };
 
+export interface DiagramListItem {
+    id: string;
+    name: string;
+    updatedAt: string | null;
+}
+
+/**
+ * List all diagrams saved on the server
+ */
+export const listDiagrams = async (): Promise<DiagramListItem[]> => {
+    try {
+        const response = await fetch(`${API_URL}/api/diagrams`);
+
+        if (!response.ok) {
+            throw new Error('Failed to list diagrams');
+        }
+
+        const diagrams: DiagramListItem[] = await response.json();
+        return diagrams;
+    } catch (error) {
+        console.error('Error listing diagrams from backend:', error);
+        return [];
+    }
+};
+
 /**
  * Check if backend API is available
  */

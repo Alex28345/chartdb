@@ -66,6 +66,14 @@ export const te: LanguageTranslation = {
             delete: 'తొలగించు',
         },
 
+        delete_server_diagram_alert: {
+            title: 'Delete diagram from server',
+            description:
+                'This action cannot be undone. This will permanently delete the diagram from the server, and it will no longer be accessible from other devices.',
+            cancel: 'Cancel',
+            delete: 'Delete',
+        },
+
         clear_diagram_alert: {
             title: 'చిత్రాన్ని తొలగించు',
             description:
@@ -357,11 +365,21 @@ export const te: LanguageTranslation = {
             },
             cancel: 'రద్దు',
             open: 'తెరవు',
+            create_new: 'New diagram',
 
             diagram_actions: {
                 open: 'తెరవు',
                 duplicate: 'నకలు',
                 delete: 'తొలగించు',
+            },
+
+            local_section: {
+                title: 'On this device',
+            },
+
+            server_section: {
+                title: 'On the server',
+                empty: 'No diagrams saved on the server yet.',
             },
         },
 

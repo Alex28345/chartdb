@@ -64,6 +64,14 @@ export const fr: LanguageTranslation = {
             delete: 'Supprimer',
         },
 
+        delete_server_diagram_alert: {
+            title: 'Supprimer le diagramme du serveur',
+            description:
+                "Cette action est irréversible. Cela supprimera définitivement le diagramme du serveur, il ne sera plus accessible depuis d'autres appareils.",
+            cancel: 'Annuler',
+            delete: 'Supprimer',
+        },
+
         clear_diagram_alert: {
             title: 'Effacer le Diagramme',
             description:
@@ -353,11 +361,21 @@ export const fr: LanguageTranslation = {
             },
             cancel: 'Annuler',
             open: 'Ouvrir',
+            create_new: 'Nouveau diagramme',
 
             diagram_actions: {
                 open: 'Ouvrir',
                 duplicate: 'Dupliquer',
                 delete: 'Supprimer',
+            },
+
+            local_section: {
+                title: 'Sur cet appareil',
+            },
+
+            server_section: {
+                title: 'Sur le serveur',
+                empty: 'Aucun diagramme enregistré sur le serveur pour le moment.',
             },
         },
 

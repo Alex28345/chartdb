@@ -66,6 +66,14 @@ export const bn: LanguageTranslation = {
             delete: 'মুছুন',
         },
 
+        delete_server_diagram_alert: {
+            title: 'Delete diagram from server',
+            description:
+                'This action cannot be undone. This will permanently delete the diagram from the server, and it will no longer be accessible from other devices.',
+            cancel: 'Cancel',
+            delete: 'Delete',
+        },
+
         clear_diagram_alert: {
             title: 'ডায়াগ্রাম পরিষ্কার করুন',
             description:
@@ -355,11 +363,21 @@ export const bn: LanguageTranslation = {
             },
             cancel: 'বাতিল করুন',
             open: 'খুলুন',
+            create_new: 'New diagram',
 
             diagram_actions: {
                 open: 'খুলুন',
                 duplicate: 'ডুপ্লিকেট',
                 delete: 'মুছুন',
+            },
+
+            local_section: {
+                title: 'On this device',
+            },
+
+            server_section: {
+                title: 'On the server',
+                empty: 'No diagrams saved on the server yet.',
             },
         },
 

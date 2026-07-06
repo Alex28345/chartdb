@@ -7,6 +7,7 @@ import { useStorage } from '@/hooks/use-storage';
 import type { Diagram } from '@/lib/domain/diagram';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { listDiagrams as listServerDiagrams } from '@/lib/api/diagram-api';
 
 export const useDiagramLoader = () => {
     const [initialDiagram, setInitialDiagram] = useState<Diagram | undefined>();
@@ -55,9 +56,12 @@ export const useDiagramLoader = () => {
                     return;
                 }
             }
-            const diagrams = await listDiagrams();
+            const [diagrams, serverDiagrams] = await Promise.all([
+                listDiagrams(),
+                listServerDiagrams(),
+            ]);
 
-            if (diagrams.length > 0) {
+            if (diagrams.length > 0 || serverDiagrams.length > 0) {
                 openOpenDiagramDialog({ canClose: false });
             } else {
                 openCreateDiagramDialog();

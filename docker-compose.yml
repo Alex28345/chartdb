@@ -1,0 +1,31 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: chartdb-redis
+    restart: unless-stopped
+    # Persist data to disk (RDB snapshots) so diagrams survive restarts
+    command: redis-server --save 60 1 --appendonly yes
+    volumes:
+      - ./redis-data:/data
+
+  chartdb:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Must match how the frontend is served: since frontend and backend
+        # share the same container/port via nginx, we call the backend
+        # through a relative path proxied by nginx. See default.conf.template.
+        VITE_API_URL: ''
+        VITE_DISABLE_ANALYTICS: 'true'
+    container_name: chartdb-app
+    restart: unless-stopped
+    ports:
+      - '8080:80' # Frontend (nginx)
+      - '3000:3000' # Backend API (optional to expose, useful for debugging)
+    environment:
+      REDIS_URL: redis://redis:6379
+      FRONTEND_URL: http://localhost
+      DIAGRAM_TTL: '0' # 0 = never expires, permanent storage
+    depends_on:
+      - redis

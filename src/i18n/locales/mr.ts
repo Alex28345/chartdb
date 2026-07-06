@@ -66,6 +66,14 @@ export const mr: LanguageTranslation = {
             delete: 'हटवा',
         },
 
+        delete_server_diagram_alert: {
+            title: 'Delete diagram from server',
+            description:
+                'This action cannot be undone. This will permanently delete the diagram from the server, and it will no longer be accessible from other devices.',
+            cancel: 'Cancel',
+            delete: 'Delete',
+        },
+
         clear_diagram_alert: {
             title: 'आरेख साफ करा',
             description:
@@ -360,11 +368,21 @@ export const mr: LanguageTranslation = {
             },
             cancel: 'रद्द करा',
             open: 'उघडा',
+            create_new: 'New diagram',
 
             diagram_actions: {
                 open: 'उघडा',
                 duplicate: 'डुप्लिकेट',
                 delete: 'हटवा',
+            },
+
+            local_section: {
+                title: 'On this device',
+            },
+
+            server_section: {
+                title: 'On the server',
+                empty: 'No diagrams saved on the server yet.',
             },
         },
 

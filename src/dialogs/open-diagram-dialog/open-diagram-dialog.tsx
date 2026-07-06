@@ -28,6 +28,9 @@ import { useNavigate } from 'react-router-dom';
 import type { BaseDialogProps } from '../common/base-dialog-props';
 import { useDebounce } from '@/hooks/use-debounce';
 import { DiagramRowActionsMenu } from './diagram-row-actions-menu/diagram-row-actions-menu';
+import { ServerDiagramRowActionsMenu } from './server-diagram-row-actions-menu/server-diagram-row-actions-menu';
+import { listDiagrams as listServerDiagrams } from '@/lib/api/diagram-api';
+import { CloudIcon, HardDriveIcon, Loader2 } from 'lucide-react';
 
 export interface OpenDiagramDialogProps extends BaseDialogProps {
     canClose?: boolean;
@@ -37,12 +40,17 @@ export const OpenDiagramDialog: React.FC<OpenDiagramDialogProps> = ({
     dialog,
     canClose = true,
 }) => {
-    const { closeOpenDiagramDialog } = useDialog();
+    const { closeOpenDiagramDialog, openCreateDiagramDialog } = useDialog();
     const { t } = useTranslation();
     const { updateConfig } = useConfig();
     const navigate = useNavigate();
     const { listDiagrams } = useStorage();
     const [diagrams, setDiagrams] = useState<Diagram[]>([]);
+    const [serverDiagrams, setServerDiagrams] = useState<
+        Array<{ id: string; name: string; updatedAt: string | null }>
+    >([]);
+    const [isLoadingServerDiagrams, setIsLoadingServerDiagrams] =
+        useState(false);
     const [selectedDiagramId, setSelectedDiagramId] = useState<
         string | undefined
     >();
@@ -56,12 +64,26 @@ export const OpenDiagramDialog: React.FC<OpenDiagramDialogProps> = ({
         );
     }, [listDiagrams]);
 
+    const fetchServerDiagrams = useCallback(async () => {
+        setIsLoadingServerDiagrams(true);
+        try {
+            const remote = await listServerDiagrams();
+            // Don't show diagrams that are already open locally to avoid duplicates
+            const localIds = new Set(diagrams.map((d) => d.id));
+            setServerDiagrams(remote.filter((d) => !localIds.has(d.id)));
+        } finally {
+            setIsLoadingServerDiagrams(false);
+        }
+    }, [diagrams]);
+
     useEffect(() => {
         if (!dialog.open) {
             return;
         }
         setSelectedDiagramId(undefined);
         fetchDiagrams();
+        fetchServerDiagrams();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [dialog.open, fetchDiagrams]);
 
     const openDiagram = useCallback(
@@ -73,6 +95,11 @@ export const OpenDiagramDialog: React.FC<OpenDiagramDialogProps> = ({
         },
         [updateConfig, navigate]
     );
+
+    const createNewDiagram = useCallback(() => {
+        closeOpenDiagramDialog();
+        openCreateDiagramDialog();
+    }, [closeOpenDiagramDialog, openCreateDiagramDialog]);
 
     const handleRowKeyDown = useCallback(
         (e: React.KeyboardEvent<HTMLTableRowElement>) => {
@@ -143,6 +170,12 @@ export const OpenDiagramDialog: React.FC<OpenDiagramDialogProps> = ({
                     </DialogDescription>
                 </DialogHeader>
                 <DialogInternalContent>
+                    <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2 px-1 text-sm font-medium text-muted-foreground">
+                            <HardDriveIcon className="size-4" />
+                            {t('open_diagram_dialog.local_section.title')}
+                        </div>
+                    </div>
                     <div className="flex flex-1 items-center justify-center">
                         <Table>
                             <TableHeader className="sticky top-0 bg-background">
@@ -242,18 +275,99 @@ export const OpenDiagramDialog: React.FC<OpenDiagramDialogProps> = ({
                             </TableBody>
                         </Table>
                     </div>
+
+                    <div className="mt-4 flex flex-col gap-2">
+                        <div className="flex items-center gap-2 px-1 text-sm font-medium text-muted-foreground">
+                            <CloudIcon className="size-4" />
+                            {t('open_diagram_dialog.server_section.title')}
+                            {isLoadingServerDiagrams ? (
+                                <Loader2 className="size-3.5 animate-spin" />
+                            ) : null}
+                        </div>
+
+                        {!isLoadingServerDiagrams &&
+                        serverDiagrams.length === 0 ? (
+                            <div className="px-1 py-2 text-sm text-muted-foreground">
+                                {t('open_diagram_dialog.server_section.empty')}
+                            </div>
+                        ) : (
+                            <Table>
+                                <TableBody>
+                                    {serverDiagrams.map((d) => (
+                                        <TableRow
+                                            key={d.id}
+                                            data-state={`${selectedDiagramId === d.id ? 'selected' : ''}`}
+                                            tabIndex={0}
+                                            onFocus={() =>
+                                                setSelectedDiagramId(d.id)
+                                            }
+                                            className="cursor-pointer focus:bg-accent focus:outline-none"
+                                            onClick={(e) => {
+                                                setSelectedDiagramId(d.id);
+                                                if (e.detail === 2) {
+                                                    openDiagram(d.id);
+                                                    closeOpenDiagramDialog();
+                                                }
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (
+                                                    e.key === 'Enter' ||
+                                                    e.key === ' '
+                                                ) {
+                                                    e.preventDefault();
+                                                    openDiagram(d.id);
+                                                    closeOpenDiagramDialog();
+                                                }
+                                            }}
+                                        >
+                                            <TableCell className="w-8">
+                                                <CloudIcon className="size-4 text-muted-foreground" />
+                                            </TableCell>
+                                            <TableCell>{d.name}</TableCell>
+                                            <TableCell className="text-right text-muted-foreground">
+                                                {d.updatedAt
+                                                    ? new Date(
+                                                          d.updatedAt
+                                                      ).toLocaleString()
+                                                    : ''}
+                                            </TableCell>
+                                            <TableCell className="items-center p-0 pr-1 text-right">
+                                                <ServerDiagramRowActionsMenu
+                                                    diagramId={d.id}
+                                                    onOpen={() => {
+                                                        openDiagram(d.id);
+                                                        closeOpenDiagramDialog();
+                                                    }}
+                                                    refetch={
+                                                        fetchServerDiagrams
+                                                    }
+                                                />
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        )}
+                    </div>
                 </DialogInternalContent>
 
                 <DialogFooter className="flex !justify-between gap-2">
-                    {canClose ? (
-                        <DialogClose asChild>
-                            <Button type="button" variant="secondary">
-                                {t('open_diagram_dialog.cancel')}
-                            </Button>
-                        </DialogClose>
-                    ) : (
-                        <div />
-                    )}
+                    <div className="flex gap-2">
+                        {canClose ? (
+                            <DialogClose asChild>
+                                <Button type="button" variant="secondary">
+                                    {t('open_diagram_dialog.cancel')}
+                                </Button>
+                            </DialogClose>
+                        ) : null}
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={createNewDiagram}
+                        >
+                            {t('open_diagram_dialog.create_new')}
+                        </Button>
+                    </div>
                     <DialogClose asChild>
                         <Button
                             type="submit"

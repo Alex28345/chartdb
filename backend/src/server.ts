@@ -62,6 +62,10 @@ app.get('/health', (req: Request, res: Response) => {
     });
 });
 
+// Redis keys used for the diagram index (list of all saved diagrams)
+const INDEX_SET_KEY = 'diagrams:index'; // Set of all diagram ids
+const metaKey = (id: string) => `diagram:meta:${id}`; // Hash: name, updatedAt
+
 // Save/Update diagram
 app.post('/api/diagrams', async (req: Request, res: Response) => {
     try {
@@ -74,6 +78,11 @@ app.post('/api/diagrams', async (req: Request, res: Response) => {
         }
 
         const key = `diagram:${id}`;
+        const now = new Date().toISOString();
+        const name =
+            typeof data?.name === 'string' && data.name.trim().length > 0
+                ? data.name
+                : id;
 
         // Store in Redis with or without TTL based on config
         if (DIAGRAM_TTL > 0) {
@@ -83,6 +92,10 @@ app.post('/api/diagrams', async (req: Request, res: Response) => {
             // No expiration - persist forever
             await redis.set(key, JSON.stringify(data));
         }
+
+        // Keep the index up to date so /api/diagrams can list everything
+        await redis.sAdd(INDEX_SET_KEY, id);
+        await redis.hSet(metaKey(id), { name, updatedAt: now });
 
         console.log(
             `✓ Saved diagram: ${id}${DIAGRAM_TTL > 0 ? ` (expires in ${DIAGRAM_TTL}s)` : ' (no expiration)'}`
@@ -96,6 +109,36 @@ app.post('/api/diagrams', async (req: Request, res: Response) => {
     } catch (error) {
         console.error('Error saving diagram:', error);
         res.status(500).json({ error: 'Failed to save diagram' });
+    }
+});
+
+// List all saved diagrams (id, name, updatedAt)
+// IMPORTANT: this route must be declared BEFORE '/api/diagrams/:id'
+// otherwise Express would match "list" style requests to the :id route.
+app.get('/api/diagrams', async (req: Request, res: Response) => {
+    try {
+        const ids = await redis.sMembers(INDEX_SET_KEY);
+
+        const diagrams = await Promise.all(
+            ids.map(async (id) => {
+                const meta = await redis.hGetAll(metaKey(id));
+                return {
+                    id,
+                    name: meta.name || id,
+                    updatedAt: meta.updatedAt || null,
+                };
+            })
+        );
+
+        // Most recently updated first
+        diagrams.sort((a, b) =>
+            (b.updatedAt || '').localeCompare(a.updatedAt || '')
+        );
+
+        res.json(diagrams);
+    } catch (error) {
+        console.error('Error listing diagrams:', error);
+        res.status(500).json({ error: 'Failed to list diagrams' });
     }
 });
 
@@ -135,6 +178,10 @@ app.delete('/api/diagrams/:id', async (req: Request, res: Response) => {
                 error: 'Diagram not found',
             });
         }
+
+        // Clean up the index and metadata too
+        await redis.sRem(INDEX_SET_KEY, id);
+        await redis.del(metaKey(id));
 
         console.log(`✓ Deleted diagram: ${id}`);
 
