@@ -27,6 +27,30 @@ interface PendingForeignKey {
     deleteAction?: string;
 }
 
+// Tools like Enterprise Architect emit verbose `/* ... */` block comments
+// (headers, section dividers) interleaved between statements. If left in,
+// they get glued onto the next statement's text and break the
+// `startsWith('CREATE TABLE')` / `startsWith('ALTER TABLE')` checks below,
+// silently dropping whichever table or foreign key follows a comment.
+function stripBlockComments(sqlContent: string): string {
+    return sqlContent.replace(/\/\*[\s\S]*?\*\//g, '');
+}
+
+// Some export tools (again, Enterprise Architect) add ANSI-style ASC/DESC
+// column ordering inside PRIMARY KEY/UNIQUE/KEY column lists, e.g.
+// `PRIMARY KEY (`Id` ASC)`. This isn't valid MySQL dump syntax and can trip
+// up the SQL parser, so strip it while keeping the column list intact.
+function stripKeyColumnOrdering(sqlContent: string): string {
+    return sqlContent.replace(
+        /(`[^`]+`|\b\w+\b)\s+(ASC|DESC)\b(?=\s*[,)])/gi,
+        '$1'
+    );
+}
+
+function sanitizeMySQLDump(sqlContent: string): string {
+    return stripKeyColumnOrdering(stripBlockComments(sqlContent));
+}
+
 // Helper to extract statements from PostgreSQL dump
 function extractStatements(sqlContent: string): string[] {
     const statements: string[] = [];
@@ -62,6 +86,10 @@ function extractStatements(sqlContent: string): string[] {
 // Function to extract columns from a CREATE TABLE statement using regex
 function extractColumnsFromCreateTable(statement: string): SQLColumn[] {
     const columns: SQLColumn[] = [];
+    // Column names declared as the table-level primary key, e.g.
+    // `CONSTRAINT `PK_Foo` PRIMARY KEY (`Id`)`, so they can be marked on the
+    // matching column below instead of being silently dropped.
+    const pkColumnNames: string[] = [];
 
     // Extract everything between the first opening and last closing parenthesis
     const columnMatch = statement.match(/CREATE\s+TABLE.*?\((.*)\)[^)]*;$/s);
@@ -75,10 +103,20 @@ function extractColumnsFromCreateTable(statement: string): SQLColumn[] {
 
     for (const columnLine of columnLines) {
         const line = columnLine.trim();
+
+        // Table-level PRIMARY KEY, with or without a named CONSTRAINT prefix
+        const tablePkMatch = line.match(/PRIMARY\s+KEY\s*\(([^)]+)\)/i);
+        if (tablePkMatch) {
+            tablePkMatch[1]
+                .split(',')
+                .map((col) => col.trim().replace(/`/g, ''))
+                .forEach((col) => pkColumnNames.push(col));
+            continue;
+        }
+
         // Skip constraints at the table level
         if (
             line.toUpperCase().startsWith('CONSTRAINT') ||
-            line.toUpperCase().startsWith('PRIMARY KEY') ||
             line.toUpperCase().startsWith('FOREIGN KEY') ||
             line.toUpperCase().startsWith('UNIQUE')
         ) {
@@ -86,7 +124,7 @@ function extractColumnsFromCreateTable(statement: string): SQLColumn[] {
         }
 
         // Extract column name and definition
-        const columnNameMatch = line.match(/^"?([^"\s]+)"?\s+(.+)$/);
+        const columnNameMatch = line.match(/^`?"?([^`"\s]+)`?"?\s+(.+)$/);
         if (columnNameMatch) {
             const columnName = columnNameMatch[1];
             const definition = columnNameMatch[2];
@@ -124,6 +162,14 @@ function extractColumnsFromCreateTable(statement: string): SQLColumn[] {
                 default: defaultValue,
                 increment,
             });
+        }
+    }
+
+    if (pkColumnNames.length > 0) {
+        for (const column of columns) {
+            if (pkColumnNames.includes(column.name)) {
+                column.primaryKey = true;
+            }
         }
     }
 
@@ -243,7 +289,15 @@ function detectInlineReferences(sqlContent: string): {
     return { found: false, line: 0 };
 }
 
-export async function fromMySQL(sqlContent: string): Promise<SQLParserResult> {
+export async function fromMySQL(
+    rawSqlContent: string
+): Promise<SQLParserResult> {
+    // Clean up tool-generated noise (block comments, ASC/DESC key ordering)
+    // before any statement splitting or parsing happens, so downstream
+    // string matching (e.g. `startsWith('CREATE TABLE')`) isn't tripped up
+    // by comments glued onto the next statement.
+    const sqlContent = sanitizeMySQLDump(rawSqlContent);
+
     // Check for inline REFERENCES before proceeding
     const { found, line } = detectInlineReferences(sqlContent);
     if (found) {
@@ -968,8 +1022,14 @@ export function isMySQLFormat(sqlContent: string): boolean {
         /DEFAULT CHARSET\s*=\s*(?:utf8|latin1)/i,
         /COLLATE\s*=\s*(?:utf8_general_ci|latin1_swedish_ci)/i,
         /AUTO_INCREMENT\s*=\s*\d+/i,
-        /ALTER TABLE.*ADD CONSTRAINT.*FOREIGN KEY/i,
+        // Tolerate the constraint spanning multiple lines, as tools like
+        // Enterprise Architect put ADD CONSTRAINT / FOREIGN KEY on separate
+        // lines instead of a single line.
+        /ALTER TABLE[\s\S]*?ADD CONSTRAINT[\s\S]*?FOREIGN KEY/i,
         /-- (MySQL|MariaDB) dump/i,
+        // Strong MySQL-only marker used by many export tools (Enterprise
+        // Architect, phpMyAdmin, etc.) to allow FK-order-independent inserts.
+        /SET\s+FOREIGN_KEY_CHECKS\s*=/i,
     ];
 
     // Look for backticks around identifiers (common in MySQL)
@@ -983,6 +1043,12 @@ export function isMySQLFormat(sqlContent: string): boolean {
 
     // If there are MySQL specific comments, it's likely a MySQL dump
     if (hasMysqlComments) {
+        return true;
+    }
+
+    // SET FOREIGN_KEY_CHECKS is MySQL/MariaDB-specific syntax; no other
+    // dialect uses it, so treat it as a definitive signal on its own.
+    if (/SET\s+FOREIGN_KEY_CHECKS\s*=/i.test(sqlContent)) {
         return true;
     }
 

@@ -47,6 +47,8 @@ export const Menu: React.FC<MenuProps> = () => {
         openExportDiagramDialog,
         openImportDiagramDialog,
         openShareDiagramDialog,
+        openServerDiagramsDialog,
+        openImportSQLFilesDialog,
     } = useDialog();
     const { showAlert } = useAlert();
     const { setTheme, theme } = useTheme();
@@ -79,6 +81,10 @@ export const Menu: React.FC<MenuProps> = () => {
 
     const openDiagram = () => {
         openOpenDiagramDialog();
+    };
+
+    const openServerDiagrams = () => {
+        openServerDiagramsDialog();
     };
 
     const exportSVG = useCallback(() => {
@@ -166,6 +172,9 @@ export const Menu: React.FC<MenuProps> = () => {
                             }
                         </MenubarShortcut>
                     </MenubarItem>
+                    <MenubarItem onClick={openServerDiagrams}>
+                        {t('menu.actions.browse_server')}
+                    </MenubarItem>
                     <MenubarItem onClick={updateDiagramUpdatedAt}>
                         {t('menu.actions.save')}
                         <MenubarShortcut>
@@ -184,6 +193,11 @@ export const Menu: React.FC<MenuProps> = () => {
                         <MenubarSubContent>
                             <MenubarItem onClick={openImportDiagramDialog}>
                                 .json
+                            </MenubarItem>
+                            <MenubarItem
+                                onClick={() => openImportSQLFilesDialog()}
+                            >
+                                {t('menu.actions.import_sql_files')}
                             </MenubarItem>
                             <MenubarSeparator />
                             <MenubarItem

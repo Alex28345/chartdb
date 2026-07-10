@@ -21,6 +21,9 @@ import { ExportImageDialog } from '@/dialogs/export-image-dialog/export-image-di
 import { ExportDiagramDialog } from '@/dialogs/export-diagram-dialog/export-diagram-dialog';
 import { ImportDiagramDialog } from '@/dialogs/import-diagram-dialog/import-diagram-dialog';
 import { ShareDiagramDialog } from '@/dialogs/share-diagram-dialog/share-diagram-dialog';
+import { ServerDiagramsDialog } from '@/dialogs/server-diagrams-dialog/server-diagrams-dialog';
+import type { ImportSQLFilesDialogProps } from '@/dialogs/import-sql-files-dialog/import-sql-files-dialog';
+import { ImportSQLFilesDialog } from '@/dialogs/import-sql-files-dialog/import-sql-files-dialog';
 
 export const DialogProvider: React.FC<React.PropsWithChildren> = ({
     children,
@@ -134,6 +137,21 @@ export const DialogProvider: React.FC<React.PropsWithChildren> = ({
     // Share diagram dialog
     const [openShareDiagramDialog, setOpenShareDiagramDialog] = useState(false);
 
+    // Server diagrams dialog
+    const [openServerDiagramsDialog, setOpenServerDiagramsDialog] =
+        useState(false);
+
+    // Import SQL files dialog
+    const [openImportSQLFilesDialog, setOpenImportSQLFilesDialog] =
+        useState(false);
+    const [importSQLFilesDialogParams, setImportSQLFilesDialogParams] =
+        useState<Omit<ImportSQLFilesDialogProps, 'dialog'>>();
+    const openImportSQLFilesDialogHandler: DialogContext['openImportSQLFilesDialog'] =
+        useCallback((params) => {
+            setImportSQLFilesDialogParams(params);
+            setOpenImportSQLFilesDialog(true);
+        }, []);
+
     return (
         <dialogContext.Provider
             value={{
@@ -164,6 +182,13 @@ export const DialogProvider: React.FC<React.PropsWithChildren> = ({
                     setOpenImportDiagramDialog(false),
                 openShareDiagramDialog: () => setOpenShareDiagramDialog(true),
                 closeShareDiagramDialog: () => setOpenShareDiagramDialog(false),
+                openServerDiagramsDialog: () =>
+                    setOpenServerDiagramsDialog(true),
+                closeServerDiagramsDialog: () =>
+                    setOpenServerDiagramsDialog(false),
+                openImportSQLFilesDialog: openImportSQLFilesDialogHandler,
+                closeImportSQLFilesDialog: () =>
+                    setOpenImportSQLFilesDialog(false),
             }}
         >
             {children}
@@ -199,6 +224,11 @@ export const DialogProvider: React.FC<React.PropsWithChildren> = ({
             <ExportDiagramDialog dialog={{ open: openExportDiagramDialog }} />
             <ImportDiagramDialog dialog={{ open: openImportDiagramDialog }} />
             <ShareDiagramDialog dialog={{ open: openShareDiagramDialog }} />
+            <ServerDiagramsDialog dialog={{ open: openServerDiagramsDialog }} />
+            <ImportSQLFilesDialog
+                dialog={{ open: openImportSQLFilesDialog }}
+                {...importSQLFilesDialogParams}
+            />
         </dialogContext.Provider>
     );
 };

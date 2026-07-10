@@ -50,6 +50,15 @@ import {
     clearErrorHighlight,
     highlightErrorLine,
 } from '@/components/code-snippet/dbml/utils';
+import { UploadCloud } from 'lucide-react';
+import { useToast } from '@/components/toast/use-toast';
+
+const supportedFileExtensions = ['.sql', '.ddl', '.txt'];
+
+const isSQLFile = (file: File): boolean => {
+    const extension = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
+    return supportedFileExtensions.includes(extension);
+};
 
 const calculateContentSizeMB = (content: string): number => {
     return content.length / (1024 * 1024); // Convert to MB
@@ -78,6 +87,10 @@ export interface ImportDatabaseProps {
     title: string;
     importMethod: ImportMethod;
     setImportMethod: (method: ImportMethod) => void;
+    // When provided, dropped SQL files are handed off to this callback
+    // (e.g. to open the multi-file import dialog) instead of being merged
+    // into the editor content.
+    onFilesDropped?: (files: File[]) => void;
 }
 
 export const ImportDatabase: React.FC<ImportDatabaseProps> = ({
@@ -93,8 +106,10 @@ export const ImportDatabase: React.FC<ImportDatabaseProps> = ({
     title,
     importMethod,
     setImportMethod,
+    onFilesDropped,
 }) => {
     const { effectiveTheme } = useTheme();
+    const { toast } = useToast();
     const [errorMessage, setErrorMessage] = useState('');
     const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
     const decorationsCollection = useRef<editor.IEditorDecorationsCollection>();
@@ -111,6 +126,9 @@ export const ImportDatabase: React.FC<ImportDatabaseProps> = ({
     );
     const [isAutoFixing, setIsAutoFixing] = useState(false);
     const [showAutoFixButton, setShowAutoFixButton] = useState(false);
+    const [isDraggingFiles, setIsDraggingFiles] = useState(false);
+    const [fileDropError, setFileDropError] = useState('');
+    const dragCounterRef = useRef(0);
 
     const clearDecorations = useCallback(() => {
         clearErrorHighlight(decorationsCollection.current);
@@ -422,9 +440,114 @@ export const ImportDatabase: React.FC<ImportDatabaseProps> = ({
         ]
     );
 
+    const handleDragEnter = useCallback(
+        (e: React.DragEvent<HTMLDivElement>) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!e.dataTransfer.types.includes('Files')) return;
+            dragCounterRef.current += 1;
+            setIsDraggingFiles(true);
+        },
+        []
+    );
+
+    const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+    }, []);
+
+    const handleDragLeave = useCallback(
+        (e: React.DragEvent<HTMLDivElement>) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dragCounterRef.current = Math.max(0, dragCounterRef.current - 1);
+            if (dragCounterRef.current === 0) {
+                setIsDraggingFiles(false);
+            }
+        },
+        []
+    );
+
+    const handleFilesDrop = useCallback(
+        async (e: React.DragEvent<HTMLDivElement>) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dragCounterRef.current = 0;
+            setIsDraggingFiles(false);
+
+            const droppedFiles = Array.from(e.dataTransfer.files ?? []);
+            if (droppedFiles.length === 0) return;
+
+            const sqlFiles = droppedFiles
+                .filter(isSQLFile)
+                .sort((a, b) => a.name.localeCompare(b.name));
+
+            if (sqlFiles.length === 0) {
+                const message = `No SQL files found. Supported types: ${supportedFileExtensions.join(', ')}`;
+                setFileDropError(message);
+                toast({
+                    title: 'No SQL files found',
+                    variant: 'destructive',
+                    description: message,
+                });
+                return;
+            }
+
+            setFileDropError('');
+
+            // Hand off to the dedicated multi-file import flow when available
+            if (onFilesDropped) {
+                onFilesDropped(sqlFiles);
+                return;
+            }
+
+            try {
+                const contents = await Promise.all(
+                    sqlFiles.map((file) => file.text())
+                );
+
+                const combinedSQL = sqlFiles
+                    .map(
+                        (file, index) =>
+                            `-- ${file.name}\n${contents[index].trim()}`
+                    )
+                    .join('\n\n');
+
+                setImportMethod('ddl');
+                setScriptResult(combinedSQL);
+
+                toast({
+                    title:
+                        sqlFiles.length === 1
+                            ? `Loaded ${sqlFiles[0].name}`
+                            : `Loaded ${sqlFiles.length} SQL files`,
+                    description: sqlFiles.map((file) => file.name).join(', '),
+                });
+            } catch (err) {
+                const message =
+                    err instanceof Error
+                        ? err.message
+                        : 'Failed to read dropped files';
+                setFileDropError(message);
+                toast({
+                    title: 'Failed to read dropped files',
+                    variant: 'destructive',
+                    description: message,
+                });
+            }
+        },
+        [setImportMethod, setScriptResult, toast, onFilesDropped]
+    );
+
     const renderOutputTextArea = useCallback(
         () => (
-            <div className="flex size-full flex-col gap-1 overflow-hidden rounded-md border p-1">
+            <div
+                className="relative flex size-full flex-col gap-1 overflow-hidden rounded-md border p-1"
+                onDragEnterCapture={handleDragEnter}
+                onDragOverCapture={handleDragOver}
+                onDragLeaveCapture={handleDragLeave}
+                onDropCapture={handleFilesDrop}
+            >
                 <div className="w-full text-center text-xs text-muted-foreground">
                     {importMethod === 'query'
                         ? 'Smart Query Output'
@@ -432,6 +555,14 @@ export const ImportDatabase: React.FC<ImportDatabaseProps> = ({
                           ? 'DBML Script'
                           : 'SQL Script'}
                 </div>
+                {isDraggingFiles ? (
+                    <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed border-primary bg-primary/10 dark:bg-primary/20">
+                        <UploadCloud className="size-10 text-primary" />
+                        <span className="text-sm font-medium text-primary">
+                            Drop SQL files here to import them all at once
+                        </span>
+                    </div>
+                ) : null}
                 <div className="flex-1 overflow-hidden">
                     <Suspense fallback={<Spinner />}>
                         <Editor
@@ -481,6 +612,12 @@ export const ImportDatabase: React.FC<ImportDatabaseProps> = ({
                     </Suspense>
                 </div>
 
+                {fileDropError ? (
+                    <div className="w-full text-center text-xs text-red-500">
+                        {fileDropError}
+                    </div>
+                ) : null}
+
                 {errorMessage ||
                 ((importMethod === 'ddl' || importMethod === 'dbml') &&
                     sqlValidation) ? (
@@ -502,6 +639,12 @@ export const ImportDatabase: React.FC<ImportDatabaseProps> = ({
             handleEditorDidMount,
             sqlValidation,
             isAutoFixing,
+            isDraggingFiles,
+            fileDropError,
+            handleDragEnter,
+            handleDragOver,
+            handleDragLeave,
+            handleFilesDrop,
             handleErrorClick,
         ]
     );

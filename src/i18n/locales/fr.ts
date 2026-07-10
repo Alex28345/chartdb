@@ -16,6 +16,8 @@ export const fr: LanguageTranslation = {
                 actions: 'Actions',
                 new: 'Nouveau...',
                 browse: 'Parcourir...',
+                browse_server: 'Diagrammes serveur...',
+                import_sql_files: 'Fichiers .sql...',
                 save: 'Enregistrer',
                 import: 'Importer Base de Données',
                 export_sql: 'Exporter SQL',
@@ -376,6 +378,60 @@ export const fr: LanguageTranslation = {
             server_section: {
                 title: 'Sur le serveur',
                 empty: 'Aucun diagramme enregistré sur le serveur pour le moment.',
+            },
+
+            server_diagrams: 'Diagrammes serveur',
+        },
+
+        import_sql_files_dialog: {
+            title: 'Importer des fichiers SQL',
+            description:
+                'Chaque fichier devient un nouveau diagramme. Vérifiez les tables ci-dessous, ajustez les noms si besoin, puis validez.',
+            drop_zone:
+                'Glissez-déposez des fichiers .sql ici ou cliquez pour sélectionner',
+            supported_types: 'Types supportés : {{types}}',
+            unsupported_files: 'Aucun fichier SQL trouvé',
+            no_tables_found: 'Aucune table détectée dans ce fichier',
+            parse_error: "Impossible d'analyser ce fichier",
+            diagram_name: 'Nom du diagramme',
+            tables_count: '{{count}} table(s)',
+            cancel: 'Annuler',
+            import: 'Importer {{count}} diagramme(s)',
+            success_title: 'Import terminé',
+            success_description: '{{count}} diagramme(s) créé(s).',
+        },
+
+        server_diagrams_dialog: {
+            title: 'Diagrammes serveur',
+            description:
+                'Gérez les diagrammes enregistrés sur le serveur : ouvrez-les, organisez-les dans des dossiers ou supprimez-les.',
+            empty: 'Aucun diagramme enregistré sur le serveur pour le moment.',
+            open: 'Ouvrir',
+            close: 'Fermer',
+            delete: 'Supprimer',
+            refresh: 'Actualiser',
+            back_to_local: 'Diagrammes locaux',
+            root_folder: 'Sans dossier',
+            selected_count: '{{count}} sélectionné(s)',
+            open_selected: 'Ouvrir',
+            delete_selected: 'Supprimer',
+            move_to_folder: 'Déplacer vers...',
+            new_folder_placeholder: 'Nom du nouveau dossier',
+            create_folder: 'Créer le dossier',
+            delete_folder: 'Supprimer le dossier',
+            delete_alert: {
+                title: 'Supprimer les diagrammes du serveur ?',
+                description:
+                    'Cela supprimera définitivement {{count}} diagramme(s) du serveur. Cette action est irréversible.',
+                delete: 'Supprimer',
+                cancel: 'Annuler',
+            },
+            delete_folder_alert: {
+                title: 'Supprimer le dossier ?',
+                description:
+                    'Le dossier « {{folder}} » sera supprimé. Les diagrammes qu\'il contient ne seront pas supprimés, ils reviendront à la racine.',
+                delete: 'Supprimer',
+                cancel: 'Annuler',
             },
         },
 

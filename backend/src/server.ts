@@ -64,7 +64,8 @@ app.get('/health', (req: Request, res: Response) => {
 
 // Redis keys used for the diagram index (list of all saved diagrams)
 const INDEX_SET_KEY = 'diagrams:index'; // Set of all diagram ids
-const metaKey = (id: string) => `diagram:meta:${id}`; // Hash: name, updatedAt
+const FOLDERS_SET_KEY = 'diagrams:folders'; // Set of all folder names
+const metaKey = (id: string) => `diagram:meta:${id}`; // Hash: name, updatedAt, folder
 
 // Save/Update diagram
 app.post('/api/diagrams', async (req: Request, res: Response) => {
@@ -126,6 +127,7 @@ app.get('/api/diagrams', async (req: Request, res: Response) => {
                     id,
                     name: meta.name || id,
                     updatedAt: meta.updatedAt || null,
+                    folder: meta.folder || null,
                 };
             })
         );
@@ -217,6 +219,90 @@ app.get('/api/diagrams/:id/ttl', async (req: Request, res: Response) => {
     } catch (error) {
         console.error('Error getting diagram TTL:', error);
         res.status(500).json({ error: 'Failed to get diagram TTL' });
+    }
+});
+
+// Move a diagram into a folder (or back to the root with folder: null/'')
+app.post('/api/diagrams/:id/folder', async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { folder } = req.body as { folder?: string | null };
+
+        const exists = await redis.sIsMember(INDEX_SET_KEY, id);
+        if (!exists) {
+            return res.status(404).json({ error: 'Diagram not found' });
+        }
+
+        const folderName = typeof folder === 'string' ? folder.trim() : '';
+
+        if (folderName) {
+            await redis.hSet(metaKey(id), { folder: folderName });
+            await redis.sAdd(FOLDERS_SET_KEY, folderName);
+        } else {
+            await redis.hDel(metaKey(id), 'folder');
+        }
+
+        res.json({ id, folder: folderName || null });
+    } catch (error) {
+        console.error('Error moving diagram:', error);
+        res.status(500).json({ error: 'Failed to move diagram' });
+    }
+});
+
+// List all folders
+app.get('/api/folders', async (req: Request, res: Response) => {
+    try {
+        const folders = await redis.sMembers(FOLDERS_SET_KEY);
+        folders.sort((a, b) => a.localeCompare(b));
+        res.json(folders);
+    } catch (error) {
+        console.error('Error listing folders:', error);
+        res.status(500).json({ error: 'Failed to list folders' });
+    }
+});
+
+// Create a folder
+app.post('/api/folders', async (req: Request, res: Response) => {
+    try {
+        const { name } = req.body as { name?: string };
+        const folderName = typeof name === 'string' ? name.trim() : '';
+
+        if (!folderName) {
+            return res.status(400).json({ error: 'Missing folder name' });
+        }
+
+        await redis.sAdd(FOLDERS_SET_KEY, folderName);
+        res.json({ name: folderName });
+    } catch (error) {
+        console.error('Error creating folder:', error);
+        res.status(500).json({ error: 'Failed to create folder' });
+    }
+});
+
+// Delete a folder - diagrams inside are moved back to the root
+app.delete('/api/folders/:name', async (req: Request, res: Response) => {
+    try {
+        const name = req.params.name;
+
+        const removed = await redis.sRem(FOLDERS_SET_KEY, name);
+        if (removed === 0) {
+            return res.status(404).json({ error: 'Folder not found' });
+        }
+
+        const ids = await redis.sMembers(INDEX_SET_KEY);
+        await Promise.all(
+            ids.map(async (id) => {
+                const folder = await redis.hGet(metaKey(id), 'folder');
+                if (folder === name) {
+                    await redis.hDel(metaKey(id), 'folder');
+                }
+            })
+        );
+
+        res.json({ message: 'Folder deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting folder:', error);
+        res.status(500).json({ error: 'Failed to delete folder' });
     }
 });
 

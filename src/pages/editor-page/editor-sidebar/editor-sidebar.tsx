@@ -52,7 +52,7 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = () => {
     const { isMd: isDesktop } = useBreakpoint('md');
     const { effectiveTheme } = useTheme();
     const { databaseType } = useChartDB();
-    const { openCreateDiagramDialog, openOpenDiagramDialog } = useDialog();
+    const { openCreateDiagramDialog, openServerDiagramsDialog } = useDialog();
 
     const diagramItems: SidebarItem[] = useMemo(
         () => [
@@ -68,12 +68,12 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = () => {
                 title: t('editor_sidebar.browse'),
                 icon: FolderOpen,
                 onClick: () => {
-                    openOpenDiagramDialog();
+                    openServerDiagramsDialog();
                 },
                 active: false,
             },
         ],
-        [t, openCreateDiagramDialog, openOpenDiagramDialog]
+        [t, openCreateDiagramDialog, openServerDiagramsDialog]
     );
 
     const baseItems: SidebarItem[] = useMemo(

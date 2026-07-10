@@ -10,6 +10,8 @@ import type { CreateRelationshipDialogProps } from '@/dialogs/create-relationshi
 import type { OpenDiagramDialogProps } from '@/dialogs/open-diagram-dialog/open-diagram-dialog';
 import type { CreateDiagramDialogProps } from '@/dialogs/create-diagram-dialog/create-diagram-dialog';
 import type { ShareDiagramDialogProps } from '@/dialogs/share-diagram-dialog/share-diagram-dialog';
+import type { ServerDiagramsDialogProps } from '@/dialogs/server-diagrams-dialog/server-diagrams-dialog';
+import type { ImportSQLFilesDialogProps } from '@/dialogs/import-sql-files-dialog/import-sql-files-dialog';
 
 export interface DialogContext {
     // Create diagram dialog
@@ -73,6 +75,18 @@ export interface DialogContext {
         params?: Omit<ShareDiagramDialogProps, 'dialog'>
     ) => void;
     closeShareDiagramDialog: () => void;
+
+    // Server diagrams dialog
+    openServerDiagramsDialog: (
+        params?: Omit<ServerDiagramsDialogProps, 'dialog'>
+    ) => void;
+    closeServerDiagramsDialog: () => void;
+
+    // Import SQL files dialog
+    openImportSQLFilesDialog: (
+        params?: Omit<ImportSQLFilesDialogProps, 'dialog'>
+    ) => void;
+    closeImportSQLFilesDialog: () => void;
 }
 
 export const dialogContext = createContext<DialogContext>({
@@ -98,4 +112,8 @@ export const dialogContext = createContext<DialogContext>({
     closeImportDiagramDialog: emptyFn,
     openShareDiagramDialog: emptyFn,
     closeShareDiagramDialog: emptyFn,
+    openServerDiagramsDialog: emptyFn,
+    closeServerDiagramsDialog: emptyFn,
+    openImportSQLFilesDialog: emptyFn,
+    closeImportSQLFilesDialog: emptyFn,
 });

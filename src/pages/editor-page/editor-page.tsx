@@ -27,6 +27,7 @@ import { DiffProvider } from '@/context/diff-context/diff-provider';
 import { TopNavbarMock } from './top-navbar/top-navbar-mock';
 import { DiagramFilterProvider } from '@/context/diagram-filter-context/diagram-filter-provider';
 import { useAutosaveServer } from '@/hooks/use-autosave-server';
+import { useDbmlUrlImport } from './use-dbml-url-import';
 
 const OPEN_STAR_US_AFTER_SECONDS = 30;
 const SHOW_STAR_US_AGAIN_AFTER_DAYS = 1;
@@ -49,6 +50,10 @@ const EditorPageComponent: React.FC = () => {
 
     // Autosave the current diagram to the server backend after edits
     useAutosaveServer(currentDiagram);
+
+    // Re-import from a `?dbml=` file url on every page load, so an
+    // externally (e.g. CLI/AI) edited DBML file is picked up on reload
+    useDbmlUrlImport();
 
     useEffect(() => {
         if (HIDE_CHARTDB_CLOUD) {

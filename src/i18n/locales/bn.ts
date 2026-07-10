@@ -16,6 +16,8 @@ export const bn: LanguageTranslation = {
                 actions: 'কার্য',
                 new: 'নতুন...',
                 browse: 'ব্রাউজ করুন...',
+                browse_server: 'Server diagrams...',
+                import_sql_files: '.sql files...',
                 save: 'সংরক্ষণ করুন',
                 import: 'ডাটাবেস আমদানি করুন',
                 export_sql: 'SQL রপ্তানি করুন',
@@ -378,6 +380,59 @@ export const bn: LanguageTranslation = {
             server_section: {
                 title: 'On the server',
                 empty: 'No diagrams saved on the server yet.',
+            },
+
+            server_diagrams: 'Server diagrams',
+        },
+
+        import_sql_files_dialog: {
+            title: 'Import SQL Files',
+            description:
+                'Each file becomes a new diagram. Review the tables below, adjust the names if needed, then confirm.',
+            drop_zone: 'Drag and drop .sql files here or click to select',
+            supported_types: 'Supported types: {{types}}',
+            unsupported_files: 'No SQL files found',
+            no_tables_found: 'No tables found in this file',
+            parse_error: 'Failed to parse this file',
+            diagram_name: 'Diagram name',
+            tables_count: '{{count}} table(s)',
+            cancel: 'Cancel',
+            import: 'Import {{count}} diagram(s)',
+            success_title: 'Import complete',
+            success_description: '{{count}} diagram(s) created.',
+        },
+
+        server_diagrams_dialog: {
+            title: 'Server Diagrams',
+            description:
+                'Manage the diagrams saved on the server: open, organize into folders, or delete them.',
+            empty: 'No diagrams saved on the server yet.',
+            open: 'Open',
+            close: 'Close',
+            delete: 'Delete',
+            refresh: 'Refresh',
+            back_to_local: 'Local diagrams',
+            root_folder: 'No folder',
+            selected_count: '{{count}} selected',
+            open_selected: 'Open',
+            delete_selected: 'Delete',
+            move_to_folder: 'Move to folder...',
+            new_folder_placeholder: 'New folder name',
+            create_folder: 'Create folder',
+            delete_folder: 'Delete folder',
+            delete_alert: {
+                title: 'Delete server diagrams?',
+                description:
+                    'This will permanently delete {{count}} diagram(s) from the server. This action cannot be undone.',
+                delete: 'Delete',
+                cancel: 'Cancel',
+            },
+            delete_folder_alert: {
+                title: 'Delete folder?',
+                description:
+                    'The folder "{{folder}}" will be deleted. The diagrams it contains will not be deleted, they will move back to the root.',
+                delete: 'Delete',
+                cancel: 'Cancel',
             },
         },
 

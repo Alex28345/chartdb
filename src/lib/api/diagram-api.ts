@@ -113,6 +113,7 @@ export interface DiagramListItem {
     id: string;
     name: string;
     updatedAt: string | null;
+    folder: string | null;
 }
 
 /**
@@ -131,6 +132,81 @@ export const listDiagrams = async (): Promise<DiagramListItem[]> => {
     } catch (error) {
         console.error('Error listing diagrams from backend:', error);
         return [];
+    }
+};
+
+/**
+ * Move a diagram to a folder on the server (null/'' moves it back to the root)
+ */
+export const setDiagramFolder = async (
+    id: string,
+    folder: string | null
+): Promise<boolean> => {
+    try {
+        const response = await fetch(`${API_URL}/api/diagrams/${id}/folder`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ folder }),
+        });
+
+        return response.ok;
+    } catch (error) {
+        console.error('Error moving diagram on backend:', error);
+        return false;
+    }
+};
+
+/**
+ * List all folders on the server
+ */
+export const listFolders = async (): Promise<string[]> => {
+    try {
+        const response = await fetch(`${API_URL}/api/folders`);
+
+        if (!response.ok) {
+            throw new Error('Failed to list folders');
+        }
+
+        const folders: string[] = await response.json();
+        return folders;
+    } catch (error) {
+        console.error('Error listing folders from backend:', error);
+        return [];
+    }
+};
+
+/**
+ * Create a folder on the server
+ */
+export const createFolder = async (name: string): Promise<boolean> => {
+    try {
+        const response = await fetch(`${API_URL}/api/folders`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name }),
+        });
+
+        return response.ok;
+    } catch (error) {
+        console.error('Error creating folder on backend:', error);
+        return false;
+    }
+};
+
+/**
+ * Delete a folder on the server (its diagrams move back to the root)
+ */
+export const deleteFolder = async (name: string): Promise<boolean> => {
+    try {
+        const response = await fetch(
+            `${API_URL}/api/folders/${encodeURIComponent(name)}`,
+            { method: 'DELETE' }
+        );
+
+        return response.ok;
+    } catch (error) {
+        console.error('Error deleting folder on backend:', error);
+        return false;
     }
 };
 

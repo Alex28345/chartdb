@@ -39,7 +39,7 @@ export const CreateDiagramDialog: React.FC<CreateDiagramDialogProps> = ({
     const [databaseType, setDatabaseType] = useState<DatabaseType>(
         DatabaseType.GENERIC
     );
-    const { closeCreateDiagramDialog } = useDialog();
+    const { closeCreateDiagramDialog, openImportSQLFilesDialog } = useDialog();
     const { updateConfig } = useConfig();
     const [scriptResult, setScriptResult] = useState('');
     const [databaseEdition, setDatabaseEdition] = useState<
@@ -266,6 +266,10 @@ export const CreateDiagramDialog: React.FC<CreateDiagramDialogProps> = ({
                         importMethod={importMethod}
                         setImportMethod={setImportMethod}
                         keepDialogAfterImport={true}
+                        onFilesDropped={(files) => {
+                            closeCreateDiagramDialog();
+                            openImportSQLFilesDialog({ files });
+                        }}
                     />
                 ) : step === CreateDiagramDialogStep.SELECT_TABLES ? (
                     <SelectTables
